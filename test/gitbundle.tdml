@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tdml:testSuite
+    suiteName="git bundle DFDL schema"
+    xmlns:tdml="http://www.ibm.com/xmlns/dfdl/testData"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:gb="urn:gitlab:git-bundle:1.0"
+    defaultRoundTrip="none">
+
+  <!-- ===== positive: parse + exact round-trip ===================== -->
+
+  <tdml:parserTestCase name="parse_valid_v2_sha1" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd" roundTrip="onePass">
+    <tdml:document>
+      <tdml:documentPart type="file">data/valid-v2-sha1.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:infoset>
+      <tdml:dfdlInfoset>
+        <gb:gitBundle xmlns:gb="urn:gitlab:git-bundle:1.0">
+  <gb:signature>
+    <gb:format># v</gb:format>
+    <gb:version>2</gb:version>
+    <gb:label> git bundle</gb:label>
+  </gb:signature>
+  <gb:capabilities></gb:capabilities>
+  <gb:prerequisites></gb:prerequisites>
+  <gb:references>
+    <gb:reference>
+      <gb:objectId>48afddcd0c9853dd27d8022b7fa2437f0793f504</gb:objectId>
+      <gb:refName>refs/heads/main</gb:refName>
+    </gb:reference>
+    <gb:reference>
+      <gb:objectId>48afddcd0c9853dd27d8022b7fa2437f0793f504</gb:objectId>
+      <gb:refName>refs/tags/v1.0</gb:refName>
+    </gb:reference>
+    <gb:reference>
+      <gb:objectId>48afddcd0c9853dd27d8022b7fa2437f0793f504</gb:objectId>
+      <gb:refName>HEAD</gb:refName>
+    </gb:reference>
+  </gb:references>
+  <gb:headerEnd></gb:headerEnd>
+  <gb:packfile>
+    <gb:magic>PACK</gb:magic>
+    <gb:version>2</gb:version>
+    <gb:objectCount>3</gb:objectCount>
+    <gb:packBody>9D0B789C9DCC410AC2301040D17D4E317B41A6D3761241445C081E238D531C481A0953E9F1157A03FFEE6F9E35119024841CC2344426E991BC74A72063F2619E06E244BD3023B9B8DAAB36B8EB666B13B85583F3BCCF55B658DE598EBA7C62D6E7053ACF9E68644438E02F976A296A267F03EEB1A869CCB04BEE0BE0A63B2EA802789C33343030333151482F4A4D2DC9CC4BD72BA9286158F1E6FB8B6A96A07CF55C59F3EA506FDB63020F76030021190F97B101789CCB48CDC9C95748CF2C51482ACD4BC949E50200397D061DC67F9D0601D5C63EE37FB928250B6DECA7A5D8FF</gb:packBody>
+  </gb:packfile>
+</gb:gitBundle>
+      </tdml:dfdlInfoset>
+    </tdml:infoset>
+  </tdml:parserTestCase>
+
+  <tdml:parserTestCase name="parse_valid_v3_sha256" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd" roundTrip="onePass">
+    <tdml:document>
+      <tdml:documentPart type="file">data/valid-v3-sha256.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:infoset>
+      <tdml:dfdlInfoset>
+        <gb:gitBundle xmlns:gb="urn:gitlab:git-bundle:1.0">
+  <gb:signature>
+    <gb:format># v</gb:format>
+    <gb:version>3</gb:version>
+    <gb:label> git bundle</gb:label>
+  </gb:signature>
+  <gb:capabilities>
+    <gb:capability>
+      <gb:key>object-format</gb:key>
+      <gb:assignment>
+        <gb:value>sha256</gb:value>
+      </gb:assignment>
+    </gb:capability>
+  </gb:capabilities>
+  <gb:prerequisites></gb:prerequisites>
+  <gb:references>
+    <gb:reference>
+      <gb:objectId>5cbaaeac41e6e45949db8729aac1def648527e828ebb063e4504478bae3f0d3f</gb:objectId>
+      <gb:refName>refs/heads/main</gb:refName>
+    </gb:reference>
+    <gb:reference>
+      <gb:objectId>5cbaaeac41e6e45949db8729aac1def648527e828ebb063e4504478bae3f0d3f</gb:objectId>
+      <gb:refName>refs/tags/v1.0</gb:refName>
+    </gb:reference>
+    <gb:reference>
+      <gb:objectId>5cbaaeac41e6e45949db8729aac1def648527e828ebb063e4504478bae3f0d3f</gb:objectId>
+      <gb:refName>HEAD</gb:refName>
+    </gb:reference>
+  </gb:references>
+  <gb:headerEnd></gb:headerEnd>
+  <gb:packfile>
+    <gb:magic>PACK</gb:magic>
+    <gb:version>2</gb:version>
+    <gb:objectCount>3</gb:objectCount>
+    <gb:packBody>950D789C9D8C490AC3300C00EF7E85EE8562C58B6C28A5F450E833E444A1866C04A5E4F90DE4071DE63297D15504AC9436E7848EE8D0E7E05DE7C947122C31A58239384F9D3023A7DC076E23F6D414EB45D80534BCE9675EE15577DD5681E7AC70EBCF78C8CEE332C8B54E5F1E6A7707A4484D13A2B570B107A69DC7B1AACADF03F39EAA561EE03C991FC5504171A403789C33343030333151482F4A4D2DC9CC4BD72BA92861607599FC7A310BB33B43A7874A9AEA154D7793DE85A6C56722CFBCDBC2B5E04A663C00C2EE1392B101789CCB48CDC9C95748CF2C51482ACD4BC949E50200397D061DFC4FDAF25875A69327F393A2C72D9386B085A396AC9AE32F6E7C0C35DC443572</gb:packBody>
+  </gb:packfile>
+</gb:gitBundle>
+      </tdml:dfdlInfoset>
+    </tdml:infoset>
+  </tdml:parserTestCase>
+
+  <!-- ===== negative: each must be a processing error ============== -->
+
+  <tdml:parserTestCase name="reject_bad_signature" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd">
+    <tdml:document>
+      <tdml:documentPart type="file">data/bad-signature.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:errors>
+      <tdml:error>git bundle version must be 2 or 3</tdml:error>
+    </tdml:errors>
+  </tdml:parserTestCase>
+
+  <tdml:parserTestCase name="reject_ctrl_char_refname" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd">
+    <tdml:document>
+      <tdml:documentPart type="file">data/ctrl-char-refname.bundle</tdml:documentPart>
+    </tdml:document>
+    <!-- An ESC byte in the refname stops the safeText length pattern
+         [^\x00-\x1F\x7F]* short, so the line's LF terminator is not found.
+         Rejection is structural - fn:matches is unavailable in Daffodil
+         4.1.0, so rule 6 has no named assert message; "terminator" is the
+         distinctive fragment of the resulting parse error. -->
+    <tdml:errors>
+      <tdml:error>terminator</tdml:error>
+    </tdml:errors>
+  </tdml:parserTestCase>
+
+  <tdml:parserTestCase name="reject_unknown_capability" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd">
+    <tdml:document>
+      <tdml:documentPart type="file">data/unknown-capability.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:errors>
+      <tdml:error>unknown git bundle capability</tdml:error>
+    </tdml:errors>
+  </tdml:parserTestCase>
+
+  <tdml:parserTestCase name="reject_bad_pack_magic" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd">
+    <tdml:document>
+      <tdml:documentPart type="file">data/bad-pack-magic.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:errors>
+      <tdml:error>packfile magic bytes must be 'PACK'</tdml:error>
+    </tdml:errors>
+  </tdml:parserTestCase>
+
+  <tdml:parserTestCase name="reject_mixed_id_length" root="gitBundle"
+      model="../schema/gitbundle.dfdl.xsd">
+    <tdml:document>
+      <tdml:documentPart type="file">data/mixed-id-length.bundle</tdml:documentPart>
+    </tdml:document>
+    <tdml:errors>
+      <tdml:error>object id length must match</tdml:error>
+    </tdml:errors>
+  </tdml:parserTestCase>
+
+</tdml:testSuite>
