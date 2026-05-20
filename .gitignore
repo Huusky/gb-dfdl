@@ -1,0 +1,8 @@
+# Local Apache Daffodil CLI install (not committed; see README)
+/tools/
+apache-daffodil-*/
+apache-daffodil-*-bin.tgz
+# Scratch repos used to generate fixtures
+/test/.scratch/
+# Daffodil parse output
+*.infoset.xml
