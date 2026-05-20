@@ -20,6 +20,9 @@
   <xs:annotation>
     <xs:appinfo source="http://www.ogf.org/dfdl/">
 
+      <!-- encodingErrorPolicy is "replace": Daffodil 4.1.0 does not implement
+           "error". Moot here - ISO-8859-1 decodes every one of the 256 byte
+           values, so an encoding error cannot occur. -->
       <dfdl:defineFormat name="bundleFormat">
         <dfdl:format
             alignment="1"
@@ -33,7 +36,7 @@
             documentFinalTerminatorCanBeMissing="yes"
             emptyValueDelimiterPolicy="both"
             encoding="ISO-8859-1"
-            encodingErrorPolicy="error"
+            encodingErrorPolicy="replace"
             escapeSchemeRef=""
             fillByte="%#r20;"
             floating="no"
@@ -90,7 +93,7 @@
 
   <!-- A git object id: lowercase hex. The run of hex digits is taken by
        lengthKind="pattern"; the assert pins the count to the bundle's
-       hash format so mixed/!declared hash lengths are rejected. -->
+       hash format so mixed or mis-declared hash lengths are rejected. -->
   <xs:simpleType name="objectId">
     <xs:annotation>
       <xs:appinfo source="http://www.ogf.org/dfdl/">
@@ -103,16 +106,20 @@
     <xs:restriction base="xs:string"/>
   </xs:simpleType>
 
-  <!-- Human-readable header text. Rejects ASCII control characters
-       (0x00-0x1F and 0x7F) - NUL, ESC, CR, BEL, TAB and similar
-       terminal- and parser-smuggling vectors. LF cannot appear: it
-       delimits the line. All other bytes (incl. UTF-8) are allowed. -->
+  <!-- Human-readable header text. Control characters (0x00-0x1F and 0x7F -
+       NUL, ESC, CR, BEL, TAB and similar terminal- and parser-smuggling
+       vectors) are rejected structurally: lengthKind="pattern" with a class
+       that excludes every control byte stops the field short of a control
+       byte, so the enclosing line's %LF; terminator then fails to match and
+       the parse is a processing error. This is done with a length pattern
+       rather than an assert because fn:matches is not in Daffodil's DFDL
+       expression subset. LF itself cannot occur in a field - it delimits
+       the line. All other bytes (0x20-0x7E, 0x80-0xFF incl. UTF-8) pass. -->
   <xs:simpleType name="safeText">
     <xs:annotation>
       <xs:appinfo source="http://www.ogf.org/dfdl/">
-        <dfdl:assert
-            message="header text field must not contain control characters"
-            test="{ fn:not(fn:contains(., '&#x09;')) and fn:not(fn:contains(., '&#x0D;')) }"/>
+        <dfdl:simpleType lengthKind="pattern"
+            lengthPattern="[^\x00-\x1F\x7F]*"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:restriction base="xs:string"/>
@@ -164,9 +171,9 @@
         </xs:element>
 
         <!-- == capabilities: "@" key ["=" value] LF   (v3 only) ==
-             setVariable runs after capabilities are parsed and before any
-             object id is read - it selects the SHA-1/SHA-256 id length.
-             The assert forbids @-lines in a v2 bundle. -->
+             The assert forbids @-lines in a v2 bundle. The SHA-1/SHA-256
+             object-id length is selected by a setVariable on the value
+             element (see below). -->
         <xs:element name="capabilities">
           <xs:annotation>
             <xs:appinfo source="http://www.ogf.org/dfdl/">
@@ -200,8 +207,7 @@
                         dfdl:initiator="=">
                       <xs:complexType>
                         <xs:sequence>
-                          <xs:element name="value" type="gb:safeText"
-                              dfdl:lengthKind="delimited">
+                          <xs:element name="value" type="gb:safeText">
                             <xs:annotation>
                               <xs:appinfo source="http://www.ogf.org/dfdl/">
                                 <dfdl:assert
@@ -238,7 +244,7 @@
                   <xs:sequence>
                     <xs:element name="objectId" type="gb:objectId"/>
                     <xs:element name="comment" type="gb:safeText"
-                        dfdl:lengthKind="delimited" dfdl:initiator="%SP;"/>
+                        dfdl:initiator="%SP;"/>
                   </xs:sequence>
                 </xs:complexType>
               </xs:element>
@@ -247,22 +253,28 @@
         </xs:element>
 
         <!-- == references: obj-id SP refname LF ==
-             No punctuation initiator: a reference line starts with hex.
-             The discriminator on objectId commits the occurrence once a
-             hex id is read, so the [0-9a-f]+ pattern failing on the blank
-             line cleanly ends the array, while a malformed refName on a
-             real reference line is a hard error. -->
+             A reference line starts with a hex object id. The pattern
+             discriminator on the reference element commits an occurrence
+             once a hex digit is seen, so the blank line (no hex) cleanly
+             ends the array while a malformed refName on a real reference
+             line is a hard processing error. -->
         <xs:element name="references">
           <xs:complexType>
             <xs:sequence>
               <xs:element name="reference" minOccurs="0" maxOccurs="unbounded"
                   dfdl:occursCountKind="implicit"
                   dfdl:terminator="%LF;">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:discriminator testKind="pattern"
+                        testPattern="[0-9a-f]"/>
+                  </xs:appinfo>
+                </xs:annotation>
                 <xs:complexType>
                   <xs:sequence>
                     <xs:element name="objectId" type="gb:objectId"/>
                     <xs:element name="refName" type="gb:safeText"
-                        dfdl:lengthKind="delimited" dfdl:initiator="%SP;">
+                        dfdl:initiator="%SP;">
                       <xs:annotation>
                         <xs:appinfo source="http://www.ogf.org/dfdl/">
                           <dfdl:assert
@@ -313,9 +325,10 @@
                   dfdl:representation="binary" dfdl:binaryNumberRep="binary"
                   dfdl:byteOrder="bigEndian"
                   dfdl:lengthKind="explicit" dfdl:length="4"/>
-              <!-- Objects + 20/32-byte checksum trailer: opaque, verbatim. -->
+              <!-- Objects + 20/32-byte checksum trailer: opaque, verbatim.
+                   xs:hexBinary is intrinsically binary data; Daffodil ignores
+                   a dfdl:representation property on it, so none is set. -->
               <xs:element name="packBody" type="xs:hexBinary"
-                  dfdl:representation="binary"
                   dfdl:lengthKind="delimited"/>
             </xs:sequence>
           </xs:complexType>
