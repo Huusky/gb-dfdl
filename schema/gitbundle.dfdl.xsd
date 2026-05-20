@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DFDL 1.0 schema for GitLab project.bundle (git bundle) files.
+  Parses git bundle v2/v3 headers (SHA-1 and SHA-256) strictly; the trailing
+  git packfile is parsed only as far as PACK magic + version + object count,
+  with objects and the checksum trailer kept verbatim as opaque hexBinary.
+  Pure DFDL 1.0 - no Daffodil extensions, no custom layers.
+-->
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:dfdl="http://www.ogf.org/dfdl/dfdl-1.0/"
+    xmlns:fn="http://www.w3.org/2005/xpath-functions"
+    xmlns:gb="urn:gitlab:git-bundle:1.0"
+    targetNamespace="urn:gitlab:git-bundle:1.0"
+    elementFormDefault="qualified">
+
+  <!-- ================================================================
+       Global format defaults + variables
+       ================================================================ -->
+  <xs:annotation>
+    <xs:appinfo source="http://www.ogf.org/dfdl/">
+
+      <dfdl:defineFormat name="bundleFormat">
+        <dfdl:format
+            alignment="1"
+            alignmentUnits="bytes"
+            binaryFloatRep="ieee"
+            binaryNumberRep="binary"
+            bitOrder="mostSignificantBitFirst"
+            byteOrder="bigEndian"
+            calendarPatternKind="implicit"
+            choiceLengthKind="implicit"
+            documentFinalTerminatorCanBeMissing="yes"
+            emptyValueDelimiterPolicy="both"
+            encoding="ISO-8859-1"
+            encodingErrorPolicy="error"
+            escapeSchemeRef=""
+            fillByte="%#r20;"
+            floating="no"
+            ignoreCase="no"
+            initiatedContent="no"
+            initiator=""
+            leadingSkip="0"
+            lengthKind="delimited"
+            lengthUnits="bytes"
+            occursCountKind="implicit"
+            outputNewLine="%LF;"
+            prefixIncludesPrefixLength="no"
+            representation="text"
+            separator=""
+            separatorPosition="infix"
+            separatorSuppressionPolicy="anyEmpty"
+            sequenceKind="ordered"
+            terminator=""
+            textBidi="no"
+            textNumberCheckPolicy="strict"
+            textNumberRep="standard"
+            textNumberRounding="explicit"
+            textNumberRoundingIncrement="0"
+            textNumberRoundingMode="roundHalfEven"
+            textOutputMinLength="0"
+            textPadKind="none"
+            textStandardBase="10"
+            textStandardExponentRep="E"
+            textStandardGroupingSeparator=","
+            textStandardInfinityRep="Inf"
+            textStandardNaNRep="NaN"
+            textStandardZeroRep="0"
+            textStringJustification="left"
+            textStringPadCharacter="%SP;"
+            textTrimKind="none"
+            trailingSkip="0"
+            truncateSpecifiedLengthString="no"
+            utf16Width="fixed"/>
+      </dfdl:defineFormat>
+
+      <dfdl:format ref="gb:bundleFormat"/>
+
+      <!-- 40 hex chars for SHA-1; reset to 64 by capabilities/setVariable
+           when an object-format=sha256 capability is present. -->
+      <dfdl:defineVariable name="expectedObjectIdLength" type="xs:int"
+          defaultValue="40"/>
+
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- ================================================================
+       Reusable simple types
+       ================================================================ -->
+
+  <!-- A git object id: lowercase hex. The run of hex digits is taken by
+       lengthKind="pattern"; the assert pins the count to the bundle's
+       hash format so mixed/!declared hash lengths are rejected. -->
+  <xs:simpleType name="objectId">
+    <xs:annotation>
+      <xs:appinfo source="http://www.ogf.org/dfdl/">
+        <dfdl:simpleType lengthKind="pattern" lengthPattern="[0-9a-f]+"/>
+        <dfdl:assert
+            message="object id length must match the bundle hash format (40 hex for SHA-1, 64 for SHA-256)"
+            test="{ fn:string-length(.) eq $gb:expectedObjectIdLength }"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:restriction base="xs:string"/>
+  </xs:simpleType>
+
+  <!-- Human-readable header text. Rejects ASCII control characters
+       (0x00-0x1F and 0x7F) - NUL, ESC, CR, BEL, TAB and similar
+       terminal- and parser-smuggling vectors. LF cannot appear: it
+       delimits the line. All other bytes (incl. UTF-8) are allowed. -->
+  <xs:simpleType name="safeText">
+    <xs:annotation>
+      <xs:appinfo source="http://www.ogf.org/dfdl/">
+        <dfdl:assert
+            message="header text field must not contain control characters"
+            test="{ fn:not(fn:contains(., '&#x09;')) and fn:not(fn:contains(., '&#x0D;')) }"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:restriction base="xs:string"/>
+  </xs:simpleType>
+
+  <!-- ================================================================
+       Root: gitBundle
+       ================================================================ -->
+  <xs:element name="gitBundle">
+    <xs:complexType>
+      <xs:sequence>
+
+        <!-- == signature: "# v2 git bundle" LF / "# v3 git bundle" LF == -->
+        <xs:element name="signature" dfdl:terminator="%LF;">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="format" type="xs:string"
+                  dfdl:lengthKind="explicit" dfdl:length="3">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:assert
+                        message="git bundle signature must begin with '# v'"
+                        test="{ . eq '# v' }"/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="version" type="xs:string"
+                  dfdl:lengthKind="explicit" dfdl:length="1">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:assert
+                        message="git bundle version must be 2 or 3"
+                        test="{ . eq '2' or . eq '3' }"/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="label" type="xs:string"
+                  dfdl:lengthKind="delimited">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:assert
+                        message="git bundle signature label must be ' git bundle'"
+                        test="{ . eq ' git bundle' }"/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- == capabilities: "@" key ["=" value] LF   (v3 only) ==
+             setVariable runs after capabilities are parsed and before any
+             object id is read - it selects the SHA-1/SHA-256 id length.
+             The assert forbids @-lines in a v2 bundle. -->
+        <xs:element name="capabilities">
+          <xs:annotation>
+            <xs:appinfo source="http://www.ogf.org/dfdl/">
+              <dfdl:assert
+                  message="a v2 git bundle must not contain @capability lines"
+                  test="{ if (../gb:signature/gb:version eq '2')
+                          then fn:count(gb:capability) eq 0
+                          else fn:true() }"/>
+            </xs:appinfo>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence dfdl:initiatedContent="yes">
+              <xs:element name="capability" minOccurs="0" maxOccurs="unbounded"
+                  dfdl:occursCountKind="implicit"
+                  dfdl:initiator="@" dfdl:terminator="%LF;">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="key" type="xs:string"
+                        dfdl:lengthKind="pattern"
+                        dfdl:lengthPattern="[A-Za-z0-9\-]+">
+                      <xs:annotation>
+                        <xs:appinfo source="http://www.ogf.org/dfdl/">
+                          <dfdl:assert
+                              message="unknown git bundle capability (expected object-format or filter)"
+                              test="{ . eq 'object-format' or . eq 'filter' }"/>
+                        </xs:appinfo>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="assignment" minOccurs="0" maxOccurs="1"
+                        dfdl:occursCountKind="implicit"
+                        dfdl:initiator="=">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="value" type="gb:safeText"
+                              dfdl:lengthKind="delimited">
+                            <xs:annotation>
+                              <xs:appinfo source="http://www.ogf.org/dfdl/">
+                                <dfdl:assert
+                                    message="object-format capability value must be sha1 or sha256"
+                                    test="{ if (../../gb:key eq 'object-format')
+                                            then (. eq 'sha1' or . eq 'sha256')
+                                            else fn:true() }"/>
+                                <dfdl:setVariable ref="gb:expectedObjectIdLength"
+                                    value="{ if (../../gb:key eq 'object-format' and . eq 'sha256')
+                                             then xs:int(64) else $gb:expectedObjectIdLength }"/>
+                              </xs:appinfo>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- == prerequisites: "-" obj-id SP comment LF ==
+             The single space is the comment's initiator (not a sequence
+             separator) so a comment may itself contain spaces. -->
+        <xs:element name="prerequisites">
+          <xs:complexType>
+            <xs:sequence dfdl:initiatedContent="yes">
+              <xs:element name="prerequisite" minOccurs="0" maxOccurs="unbounded"
+                  dfdl:occursCountKind="implicit"
+                  dfdl:initiator="-" dfdl:terminator="%LF;">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="objectId" type="gb:objectId"/>
+                    <xs:element name="comment" type="gb:safeText"
+                        dfdl:lengthKind="delimited" dfdl:initiator="%SP;"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- == references: obj-id SP refname LF ==
+             No punctuation initiator: a reference line starts with hex.
+             The discriminator on objectId commits the occurrence once a
+             hex id is read, so the [0-9a-f]+ pattern failing on the blank
+             line cleanly ends the array, while a malformed refName on a
+             real reference line is a hard error. -->
+        <xs:element name="references">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="reference" minOccurs="0" maxOccurs="unbounded"
+                  dfdl:occursCountKind="implicit"
+                  dfdl:terminator="%LF;">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="objectId" type="gb:objectId"/>
+                    <xs:element name="refName" type="gb:safeText"
+                        dfdl:lengthKind="delimited" dfdl:initiator="%SP;">
+                      <xs:annotation>
+                        <xs:appinfo source="http://www.ogf.org/dfdl/">
+                          <dfdl:assert
+                              message="reference name must not be empty"
+                              test="{ fn:string-length(.) ge 1 }"/>
+                        </xs:appinfo>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- == headerEnd: the blank line that terminates the header == -->
+        <xs:element name="headerEnd" type="xs:string"
+            dfdl:lengthKind="explicit" dfdl:length="0"
+            dfdl:terminator="%LF;"/>
+
+        <!-- == packfile: "PACK" version objectCount  body+trailer == -->
+        <xs:element name="packfile">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="magic" type="xs:string"
+                  dfdl:lengthKind="explicit" dfdl:length="4">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:assert
+                        message="packfile magic bytes must be 'PACK'"
+                        test="{ . eq 'PACK' }"/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="version" type="xs:unsignedInt"
+                  dfdl:representation="binary" dfdl:binaryNumberRep="binary"
+                  dfdl:byteOrder="bigEndian"
+                  dfdl:lengthKind="explicit" dfdl:length="4">
+                <xs:annotation>
+                  <xs:appinfo source="http://www.ogf.org/dfdl/">
+                    <dfdl:assert
+                        message="packfile version must be 2 or 3"
+                        test="{ . eq 2 or . eq 3 }"/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="objectCount" type="xs:unsignedInt"
+                  dfdl:representation="binary" dfdl:binaryNumberRep="binary"
+                  dfdl:byteOrder="bigEndian"
+                  dfdl:lengthKind="explicit" dfdl:length="4"/>
+              <!-- Objects + 20/32-byte checksum trailer: opaque, verbatim. -->
+              <xs:element name="packBody" type="xs:hexBinary"
+                  dfdl:representation="binary"
+                  dfdl:lengthKind="delimited"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
