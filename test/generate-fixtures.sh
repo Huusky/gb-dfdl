@@ -36,4 +36,5 @@ git -C "$SCRATCH/repo-sha1" bundle create --quiet "$DATA/valid-v2-sha1.bundle" -
 make_repo "$SCRATCH/repo-sha256" sha256
 git -C "$SCRATCH/repo-sha256" bundle create --quiet "$DATA/valid-v3-sha256.bundle" --all
 
-echo "valid fixtures written to $DATA"
+python3 "$HERE/make-negative-fixtures.py"
+echo "all fixtures written to $DATA"
