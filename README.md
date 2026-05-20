@@ -12,6 +12,7 @@ Developed and verified against Apache Daffodil 4.1.0.
 | Path | What it is |
 |---|---|
 | `schema/gitbundle.dfdl.xsd` | The schema. Single self-contained DFDL file. |
+| `schema/gitbundle.sch` | Optional Schematron mirror of the validation rules. |
 | `test/gitbundle.tdml` | Daffodil TDML test suite (2 positive, 5 negative). |
 | `test/data/` | Test fixtures — valid and negative bundles. |
 | `test/generate-fixtures.sh` | Regenerates every fixture from scratch. |
@@ -63,6 +64,18 @@ A bundle is rejected (processing error) if any of these fail:
 7. `refName` is non-empty.
 8. Packfile magic is `PACK`.
 9. Packfile version is 2 or 3.
+
+These rules are enforced by `schema/gitbundle.dfdl.xsd`, which is the
+authoritative validator. `schema/gitbundle.sch` restates the same nine rules
+as Schematron assertions over the parsed infoset — a secondary, human-readable
+statement. Because the DFDL schema already rejects every violation at parse
+time (a non-conforming bundle never produces an infoset), the Schematron
+assertions are documentation and defence in depth and do not normally fire.
+Daffodil 4.1.0 bundles a Schematron validator, so the file can be applied
+alongside the schema:
+
+    daffodil parse --validate schematron=schema/gitbundle.sch \
+        -s schema/gitbundle.dfdl.xsd -r gitBundle some.bundle
 
 ## Scope and limitations
 
