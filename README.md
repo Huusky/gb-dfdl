@@ -71,7 +71,10 @@ A bundle is rejected (processing error) if any of these fail:
   layer JARs. After `PACK` magic, version and object count, the remaining
   bytes (objects + checksum trailer) are consumed as one opaque `hexBinary`
   element — round-tripped exactly, but individual objects are not
-  decompressed or walked.
+  decompressed or walked. That element uses `lengthKind="delimited"` with no
+  in-scope delimiter to read to end-of-data: Daffodil 4.1.0 does not implement
+  `lengthKind="endOfParent"` for simple types, and this is the documented
+  fallback.
 - **The pack checksum trailer is not isolated.** Splitting off the final
   20/32 bytes needs the total file length or a full object walk, neither
   available in pure DFDL; the trailer lives inside the opaque body.
